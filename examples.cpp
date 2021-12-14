@@ -4,6 +4,44 @@
 
 int main()
 {
+    // Matrix accessing
+    Eigen::MatrixXd A(4,4);
+    A <<
+    1, 2, 3, 4,
+    5, 6, 7, 8,
+    9, 8, 7, 6,
+    5, 3, 2, 1;
+
+    std::cout << "\nMatrix:\n";
+    std::cout << A << std::endl;
+    
+    std::cout << "\nMatrix block(1, 1, 2, 2):\n";
+    std::cout << A.block(1, 1, 2, 2) << std::endl;
+    
+    std::cout << "\nMatrix leftCols(2):\n";
+    std::cout << A.leftCols(2) << std::endl;
+
+    std::cout << "\nMatrix rightCols(2):\n";
+    std::cout << A.rightCols(2) << std::endl;
+
+    std::cout << "\nMatrix topRows(2):\n";
+    std::cout << A.topRows(2) << std::endl;
+
+    std::cout << "\nMatrix bottomRows(2):\n";
+    std::cout << A.bottomRows(2) << std::endl;
+
+    std::cout << "\nMatrix col(1):\n";
+    std::cout << A.col(1) << std::endl;
+
+    std::cout << "\nMatrix row(2):\n";
+    std::cout << A.row(2) << std::endl;
+
+    std::cout << "\nMatrix col(1).head(3):\n";
+    std::cout << A.col(1).head(3) << std::endl;
+    
+    std::cout << "\nMatrix row(2).tail(3):\n";
+    std::cout << A.row(2).tail(3) << std::endl;
+
     // creating column point array with dynamic count
     // transformation matrices transform these
     std::cout << "\nCreate point array:\n";
@@ -50,17 +88,66 @@ int main()
     // set Scale variables
     Eigen::AlignedScaling3d scale(2,1,1);
 
-    // creating affine transformation
-    Eigen::Transform<double,3,Eigen::Affine> transform;
-    // transformations go from back to front
-    transform = translate * rotZ * rotY * rotX * scale;
+    // create one transformation from back to front
+    // auto creates an Eigen::Transform<double,3,2>
+    auto transform = translate * rotZ * rotY * rotX * scale;
+    // we can turn it into a transformation matrix
+    std::cout << "\nEigen::Transform<double,3,2> -> Eigen::Matrix<double, 4, 4>:\n";
     std::cout << transform.matrix().transpose() << std::endl;
 
-    // transform points with transform 
-    points = transform.matrix() * points.matrix();
+    // we can also create a quaternion multiplying the AngleAxis
+    // auto creates an Eigen::Quaternion<double>
+    auto rotationQ = rotZ * rotY * rotX;
+    std::cout << "\nEigen::Quaternion<double> from multiplying AngleAxis:\n";
+    std::cout << rotationQ << std::endl;
+    std::cout << "\nwEigen::Quaternion<double> -> Eigen::Matrix<double, 3, 3>:\n";
+    auto rotationM = rotationQ.matrix();
+    std::cout << rotationM.transpose() << std::endl;
 
-    std::cout << "\nTransformed points:\n";
-    std::cout << points.transpose() << std::endl;
+    // Eigen::Transform can be mixed with Eigen::Quaternion
+    // as long as transform is the first one it will create a Transform
+    auto transformWithQ = translate * rotationQ * scale;
+    // this will error
+    //auto transformTestB = rotationQ * scale;
+   
+    // transform points with transforms
+    auto transformM = transform.matrix();
+    auto pointsTransform = transform.matrix() * points.matrix();
+    auto transformWithQM = transformWithQ.matrix();
+    auto pointsTransformWithQM = transformWithQM.matrix() * points.matrix();
+
+    std::cout << "\nTransformed points with transform:\n";
+    std::cout << pointsTransform.transpose() << std::endl;
+    std::cout << "\nTransformed points with transformWithQM:\n";
+    std::cout << pointsTransformWithQM.transpose() << std::endl;
+
+    // dot and cross operations with vectors
+    Eigen::Vector3d vecA = {2,0,0};
+    Eigen::Vector3d vecB = {1,1,0};
+
+    // to get the cosine value of an angle between 2 corners
+    std::cout << "\nDot between 2 vectors:\n";
+    auto cosVal = vecA.normalized().dot(vecB.normalized());
+    auto radian = acos(cosVal);
+    auto degree = ((double) 180 / M_PI) * radian;
+    std::cout << "acos(" << cosVal << ") -> " << radian << " radian -> "
+        << degree << " degree\n" ;
+
+    auto crossABVal = vecA.normalized().cross(vecB.normalized());
+    auto crossBAVal = vecB.normalized().cross(vecA.normalized());
+    std::cout << "cross: AXB\n";
+    std::cout << crossABVal.transpose() << std::endl;
+    std::cout << "cross: BXA\n";
+    std::cout << crossBAVal.transpose() << std::endl;
+    std::cout << "sine value is in z-axis, 3rd element. Dependant of cross order.\n";
+    std::cout << "resulting vector is also perpendicular to both vectors\n";
+
+    // cross does not seem to work with dynamic sized vectors
+    // have not figured out yet why
+    Eigen::VectorXd vecC {{2,0,0}};
+    Eigen::VectorXd vecD {{1,1,0}};
+    //the following will error out
+    //auto cosValX = vecC.normalized().cross(vecD.normalized());
 
     std::cout << "\nDone!\n";
 
